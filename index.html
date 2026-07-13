@@ -16,30 +16,93 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script>
+/* Runs before first paint. Without this, a light-mode user would see a flash of
+   dark blue while the main script boots. Deliberately tiny and synchronous. */
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('spinit.v1') || '{}');
+    var pref = ['light', 'dark'].indexOf(s.theme) > -1 ? s.theme
+      : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', pref);
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+</script>
+
 <style>
 /* ============================================================
    Design tokens — change the look from one place.
-   Register: energetic, tactile, "arcade at night".
+   Every colour below is themed. Nothing else in the stylesheet
+   hard-codes a colour, so a theme is just this block, twice.
+
+   Dark  = "arcade at night": deep indigo, amber, high contrast.
+   Light = same wheel, calmer room: near-white paper, amber accent
+           darkened to amber-700 so it still passes contrast on white.
    ============================================================ */
-:root{
+:root, [data-theme="dark"]{
   --bg:#1e1b4b;
   --bg-deep:#141134;
   --surface:#312e81;
+  --surface-grad:#2b2875;
   --surface-2:#3b37a0;
+  --sheet-grad:#241f66;
   --text:#eef2ff;
   --muted:#a5b4fc;
+  --faint:#8b93d6;
   --primary:#fbbf24;
+  --primary-text:#fbbf24;      /* amber on dark = fine as text */
   --primary-ink:#3b2a04;
+  --primary-lit:#fcd34d;
+  --primary-shade:#b4821a;
   --accent:#f472b6;
   --border:#4338ca;
   --danger:#fb7185;
 
+  --wheel-stroke:#1e1b4b;      /* gap between slices */
+  --wheel-ring:#4338ca66;      /* halo around the wheel */
+  --glow-1:#4338ca55;
+  --glow-2:#f472b62e;
+
+  --shadow-1:0 1px 3px rgb(0 0 0 / .3);
+  --shadow-2:0 12px 32px rgb(0 0 0 / .35);
+}
+
+[data-theme="light"]{
+  --bg:#f1f0fb;
+  --bg-deep:#f8f8fd;
+  --surface:#ffffff;
+  --surface-grad:#f7f6ff;
+  --surface-2:#eceafd;
+  --sheet-grad:#f5f4ff;
+  --text:#1e1b4b;
+  --muted:#5b5a8f;
+  --faint:#8785b5;
+  --primary:#f59e0b;
+  --primary-text:#b45309;      /* amber-700 — 4.7:1 on white */
+  --primary-ink:#3b2a04;
+  --primary-lit:#fbbf24;
+  --primary-shade:#b4821a;
+  --accent:#db2777;
+  --border:#dedcf5;
+  --danger:#e11d48;
+
+  --wheel-stroke:#ffffff;
+  --wheel-ring:#e3e0fb;
+  --glow-1:#c7d2fe66;
+  --glow-2:#fbcfe855;
+
+  --shadow-1:0 1px 3px rgb(30 27 75 / .08);
+  --shadow-2:0 12px 32px rgb(30 27 75 / .12);
+}
+
+:root{
   /* spacing scale — 4 / 8 / 12 / 16 / 24 / 32 / 48 */
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
 
   --r-sm:10px; --r-md:16px; --r-lg:24px; --r-pill:999px;
-  --shadow-1:0 1px 3px rgb(0 0 0 / .3);
-  --shadow-2:0 12px 32px rgb(0 0 0 / .35);
   --ease:cubic-bezier(.2,.8,.2,1);
 }
 
@@ -48,10 +111,11 @@ html{-webkit-text-size-adjust:100%}
 body{
   font-family:'Fredoka',ui-rounded,'SF Pro Rounded',system-ui,-apple-system,'Segoe UI',sans-serif;
   background:
-    radial-gradient(1200px 600px at 50% -10%, #4338ca55, transparent 60%),
-    radial-gradient(800px 500px at 90% 110%, #f472b62e, transparent 60%),
+    radial-gradient(1200px 600px at 50% -10%, var(--glow-1), transparent 60%),
+    radial-gradient(800px 500px at 90% 110%, var(--glow-2), transparent 60%),
     var(--bg-deep);
   color:var(--text);
+  transition:background-color .25s var(--ease), color .25s var(--ease);
   min-height:100dvh;
   line-height:1.5;
   padding:
@@ -65,12 +129,13 @@ body.locked{overflow:hidden}
 /* ---------- Header ---------- */
 header{display:flex;align-items:center;justify-content:space-between;gap:var(--s3)}
 .brand{display:flex;align-items:center;gap:var(--s2);font-weight:700;font-size:1.35rem;letter-spacing:-.01em}
-.brand .dot{width:14px;height:14px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px #fbbf2433}
-.brand em{font-style:normal;color:var(--primary)}
+.brand .dot{width:14px;height:14px;border-radius:50%;background:var(--primary);
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--primary) 20%, transparent)}
+.brand em{font-style:normal;color:var(--primary-text)}
 
 /* ---------- Cards ---------- */
 .card{
-  background:linear-gradient(180deg,var(--surface),#2b2875);
+  background:linear-gradient(180deg,var(--surface),var(--surface-grad));
   border:1px solid var(--border);
   border-radius:var(--r-lg);
   padding:var(--s4);
@@ -86,9 +151,16 @@ select.list-select{
   background:var(--surface);color:var(--text);
   border:1px solid var(--border);border-radius:var(--r-pill);
   padding:10px 34px 10px 14px;font:inherit;font-size:.95rem;font-weight:500;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a5b4fc'><path d='M6 9L1 3h10z'/></svg>");
   background-repeat:no-repeat;background-position:right 12px center;
   max-width:170px;text-overflow:ellipsis;cursor:pointer;
+}
+/* The chevron is an inline SVG, so it can't read a CSS variable — give each
+   theme its own copy rather than leaving a grey arrow on a dark field. */
+[data-theme="dark"] select.list-select{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a5b4fc'><path d='M6 9L1 3h10z'/></svg>");
+}
+[data-theme="light"] select.list-select{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%235b5a8f'><path d='M6 9L1 3h10z'/></svg>");
 }
 
 /* ---------- Buttons ---------- */
@@ -112,13 +184,13 @@ button:active{transform:scale(.96)}
 
 .spin-btn{
   width:100%;padding:20px;border-radius:var(--r-lg);
-  background:linear-gradient(180deg,#fcd34d,var(--primary));
+  background:linear-gradient(180deg,var(--primary-lit),var(--primary));
   color:var(--primary-ink);font-size:1.4rem;font-weight:700;letter-spacing:.02em;
-  box-shadow:0 6px 0 #b4821a, var(--shadow-2);
+  box-shadow:0 6px 0 var(--primary-shade), var(--shadow-2);
   position:relative;top:0;
 }
-.spin-btn:active:not(:disabled){top:4px;box-shadow:0 2px 0 #b4821a,var(--shadow-1);transform:none}
-.spin-btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:0 6px 0 #b4821a}
+.spin-btn:active:not(:disabled){top:4px;box-shadow:0 2px 0 var(--primary-shade),var(--shadow-1);transform:none}
+.spin-btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:0 6px 0 var(--primary-shade)}
 
 /* ---------- Wheel ---------- */
 .wheel-wrap{position:relative;display:grid;place-items:center;padding:var(--s2) 0}
@@ -128,12 +200,18 @@ button:active{transform:scale(.96)}
   filter:drop-shadow(0 3px 6px rgb(0 0 0 / .5));
 }
 #wheel{width:100%;height:100%;display:block;border-radius:50%;
-  box-shadow:0 0 0 8px #4338ca66, 0 0 0 14px #1e1b4b, var(--shadow-2);
+  box-shadow:0 0 0 8px var(--wheel-ring), 0 0 0 14px var(--bg-deep), var(--shadow-2);
   background:var(--bg);
 }
 #rotor{transform-origin:150px 150px;transition:transform 4.4s cubic-bezier(.13,.86,.16,1)}
+
+/* Slice gaps and the hub are themed in CSS, not baked into the SVG markup,
+   so switching theme restyles the wheel without redrawing it. */
+.seg{stroke:var(--wheel-stroke);stroke-width:2}
 .hub{pointer-events:none}
-.seg-label{font-size:13px;font-weight:600;paint-order:stroke;
+.hub-ring{fill:var(--bg-deep);stroke:var(--primary);stroke-width:3}
+.hub-dot{fill:var(--primary)}
+.seg-label{font-size:13px;font-weight:600;paint-order:stroke;fill:#241c05;
   stroke:rgb(255 255 255 / .45);stroke-width:2.5px;stroke-linejoin:round}
 .wheel-empty{display:grid;place-items:center;text-align:center;color:var(--muted);
   width:100%;aspect-ratio:1;border:2px dashed var(--border);border-radius:50%;
@@ -147,11 +225,13 @@ button:active{transform:scale(.96)}
 }
 .result.win{
   border:1px solid var(--primary);color:var(--text);
-  background:linear-gradient(180deg,#fbbf2422,#f472b616);
+  background:linear-gradient(180deg,
+    color-mix(in srgb, var(--primary) 13%, transparent),
+    color-mix(in srgb, var(--accent) 9%, transparent));
   animation:pop .45s var(--ease);
 }
 .result .kicker{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--primary);font-weight:600}
+  color:var(--primary-text);font-weight:600}
 .result .pick{font-size:1.5rem;font-weight:700;line-height:1.25;word-break:break-word}
 @keyframes pop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
 
@@ -162,8 +242,9 @@ input[type=text]{
   border:1px solid var(--border);border-radius:var(--r-pill);
   padding:12px 16px;font:inherit;font-size:1rem;
 }
-input[type=text]::placeholder{color:#8b93d6}
-input[type=text]:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px #fbbf2433}
+input[type=text]::placeholder{color:var(--faint)}
+input[type=text]:focus{outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent)}
 
 ul{list-style:none;display:flex;flex-direction:column;gap:var(--s2)}
 .opt{
@@ -185,7 +266,7 @@ ul{list-style:none;display:flex;flex-direction:column;gap:var(--s2)}
 .weight .val{min-width:22px;text-align:center;font-size:.9rem;font-weight:600;font-variant-numeric:tabular-nums}
 .del{width:32px;height:32px;display:grid;place-items:center;border-radius:var(--r-pill);
   color:var(--muted);font-size:1.1rem}
-.del:hover{color:var(--danger);background:#fb718519}
+.del:hover{color:var(--danger);background:color-mix(in srgb, var(--danger) 10%, transparent)}
 
 .empty{text-align:center;color:var(--muted);padding:var(--s6) var(--s4);font-size:.95rem}
 .empty strong{display:block;color:var(--text);font-size:1.05rem;margin-bottom:var(--s1)}
@@ -208,9 +289,26 @@ ul{list-style:none;display:flex;flex-direction:column;gap:var(--s2)}
   padding:9px 12px;border-radius:var(--r-sm);background:var(--bg);font-size:.9rem}
 .hist .h-pick{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hist .h-meta{flex:0 0 auto;font-size:.72rem;color:var(--muted);text-align:right}
-.hist .h-meta b{display:block;font-weight:500;color:#8b93d6}
+.hist .h-meta b{display:block;font-weight:500;color:var(--faint)}
 
-footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
+/* ---------- Appearance ---------- */
+.seg-ctl{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s1);
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--r-pill);padding:var(--s1);
+}
+.seg-ctl button{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 8px;border-radius:var(--r-pill);
+  color:var(--muted);font-size:.9rem;font-weight:500;
+}
+.seg-ctl button:hover{color:var(--text)}
+.seg-ctl button svg{width:15px;height:15px;flex:0 0 15px}
+.seg-ctl button[aria-checked="true"]{
+  background:var(--primary);color:var(--primary-ink);font-weight:600;
+}
+
+footer{text-align:center;color:var(--faint);font-size:.75rem;padding-top:var(--s2)}
 
 /* ---------- Template sheet ---------- */
 .backdrop{
@@ -223,7 +321,7 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
 
 .sheet{
   width:min(560px,100%);max-height:88dvh;overflow-y:auto;
-  background:linear-gradient(180deg,var(--surface),#241f66);
+  background:linear-gradient(180deg,var(--surface),var(--sheet-grad));
   border:1px solid var(--border);
   border-radius:var(--r-lg) var(--r-lg) 0 0;
   padding:var(--s4) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom));
@@ -248,7 +346,7 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
 
 .pack{margin-bottom:var(--s6)}
 .pack h3{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--primary);margin-bottom:var(--s3)}
+  color:var(--primary-text);margin-bottom:var(--s3)}
 .chips{display:flex;flex-wrap:wrap;gap:var(--s2)}
 .chip{
   display:flex;align-items:baseline;gap:6px;
@@ -329,6 +427,31 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
     <ul class="hist" id="histList"></ul>
   </section>
 
+  <section class="card">
+    <div class="card-head"><h2>Appearance</h2></div>
+    <div class="seg-ctl" id="themeCtl" role="radiogroup" aria-label="Theme">
+      <button role="radio" data-theme-choice="system" aria-checked="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" aria-hidden="true">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+        </svg>Auto
+      </button>
+      <button role="radio" data-theme-choice="light" aria-checked="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>
+        </svg>Light
+      </button>
+      <button role="radio" data-theme-choice="dark" aria-checked="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>
+        </svg>Dark
+      </button>
+    </div>
+  </section>
+
   <footer>Everything is saved on this device only.</footer>
 </div>
 
@@ -397,6 +520,7 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
     return {
       activeListId: 'seed',
       noRepeat: false,
+      theme: 'system',
       lists: [{
         id: 'seed',
         name: "What's for dinner?",
@@ -424,6 +548,8 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
       var s = JSON.parse(raw);
       if (!s || !Array.isArray(s.lists) || !s.lists.length) return defaultState();
       if (!Array.isArray(s.history)) s.history = [];
+      // Anyone who saved state before themes existed gets 'system'.
+      if (['system','light','dark'].indexOf(s.theme) === -1) s.theme = 'system';
       return s;
     } catch (e) { return defaultState(); }
   }
@@ -433,6 +559,49 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
   function activeList() {
     var found = state.lists.filter(function (l) { return l.id === state.activeListId; })[0];
     return found || state.lists[0];
+  }
+
+  /* ---------- Theme ----------
+     Preference is one of system | light | dark. "system" isn't a colour —
+     it's a subscription to the OS setting, so it has to be resolved at paint
+     time AND re-resolved whenever the OS flips (sunset, focus mode, etc).   */
+  var darkQuery = window.matchMedia
+    ? matchMedia('(prefers-color-scheme: dark)') : null;
+
+  function resolveTheme(pref) {
+    if (pref === 'light' || pref === 'dark') return pref;
+    return (darkQuery && darkQuery.matches) ? 'dark' : 'light';
+  }
+
+  function applyTheme() {
+    var resolved = resolveTheme(state.theme);
+    document.documentElement.setAttribute('data-theme', resolved);
+
+    // Keep the phone's status/URL bar in step with the page.
+    var bar = getComputedStyle(document.documentElement)
+                .getPropertyValue('--bg-deep').trim();
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta && bar) meta.setAttribute('content', bar);
+
+    [].forEach.call(document.querySelectorAll('#themeCtl [data-theme-choice]'),
+      function (b) {
+        b.setAttribute('aria-checked', String(b.dataset.themeChoice === state.theme));
+      });
+  }
+
+  document.getElementById('themeCtl').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-theme-choice]');
+    if (!btn) return;
+    state.theme = btn.dataset.themeChoice;
+    save();
+    applyTheme();
+  });
+
+  // Only matters while the preference is "system".
+  if (darkQuery) {
+    var onSystemChange = function () { if (state.theme === 'system') applyTheme(); };
+    if (darkQuery.addEventListener) darkQuery.addEventListener('change', onSystemChange);
+    else if (darkQuery.addListener) darkQuery.addListener(onSystemChange);
   }
 
   /* ---------- The actual decision engine ---------- */
@@ -491,14 +660,15 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
     var paths = '';
 
     if (segs.length === 1) {
-      paths = '<circle cx="' + CX + '" cy="' + CY + '" r="' + R + '" fill="' + segs[0].color + '"/>';
+      paths = '<circle class="seg" cx="' + CX + '" cy="' + CY + '" r="' + R + '"'
+            + ' fill="' + segs[0].color + '"/>';
     } else {
       segs.forEach(function (s) {
         var a = pt(s.start, R), b = pt(s.end, R);
         var large = s.sweep > 180 ? 1 : 0;
-        paths += '<path d="M' + CX + ',' + CY + ' L' + a[0].toFixed(2) + ',' + a[1].toFixed(2)
+        paths += '<path class="seg" d="M' + CX + ',' + CY + ' L' + a[0].toFixed(2) + ',' + a[1].toFixed(2)
               + ' A' + R + ',' + R + ' 0 ' + large + ',1 ' + b[0].toFixed(2) + ',' + b[1].toFixed(2)
-              + ' Z" fill="' + s.color + '" stroke="#1e1b4b" stroke-width="2"/>';
+              + ' Z" fill="' + s.color + '"/>';
       });
     }
 
@@ -519,16 +689,15 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
       labels += '<text class="seg-label"'
              + ' transform="rotate(' + a.toFixed(2) + ' ' + p[0].toFixed(2) + ' ' + p[1].toFixed(2) + ')"'
              + ' x="' + p[0].toFixed(2) + '" y="' + p[1].toFixed(2) + '"'
-             + ' text-anchor="middle" dominant-baseline="central"'
-             + ' fill="#241c05">' + esc(txt) + '</text>';
+             + ' text-anchor="middle" dominant-baseline="central">' + esc(txt) + '</text>';
     });
 
     host.innerHTML =
       '<svg id="wheel" viewBox="0 0 300 300" role="img" aria-label="Wheel of options">'
       + '<g id="rotor" style="transform:rotate(' + rotation + 'deg)">' + paths + labels + '</g>'
       + '<g class="hub">'
-      +   '<circle cx="' + CX + '" cy="' + CY + '" r="26" fill="#1e1b4b" stroke="#fbbf24" stroke-width="3"/>'
-      +   '<circle cx="' + CX + '" cy="' + CY + '" r="8" fill="#fbbf24"/>'
+      +   '<circle class="hub-ring" cx="' + CX + '" cy="' + CY + '" r="26"/>'
+      +   '<circle class="hub-dot"  cx="' + CX + '" cy="' + CY + '" r="8"/>'
       + '</g></svg>';
   }
 
@@ -856,12 +1025,15 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
     }
   });
 
+  applyTheme();
   renderAll();
 
   // Pure logic exposed for testing.
   window.__spinit = {
     pickWinner: pickWinner, segments: segments,
-    TEMPLATES: TEMPLATES, uniqueName: uniqueName, addList: addList
+    TEMPLATES: TEMPLATES, uniqueName: uniqueName, addList: addList,
+    resolveTheme: resolveTheme, applyTheme: applyTheme,
+    getTheme: function () { return state.theme; }
   };
 
   if ('serviceWorker' in navigator) {

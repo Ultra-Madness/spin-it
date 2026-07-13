@@ -19,6 +19,7 @@ No accounts, no backend, no tracking — everything lives in your browser's loca
 - **Weights** — bump an option's weight from 1 to 10 with `−` / `+`. Its slice grows and the `%` next to it shows the true chance. "Even odds" resets everything to 1.
 - **Never repeat the last pick** — a toggle that excludes the previous winner, so you don't get "Tacos" three nights running.
 - **History** — the last 100 spins, with the list they came from.
+- **Dark / light / auto** — *Auto* follows your phone or laptop's setting and flips live when it does; Light and Dark override it. Your choice is remembered.
 - **Installs like an app** — add it to your phone's home screen and it opens fullscreen, works offline.
 
 ## Files
