@@ -59,6 +59,7 @@ body{
     calc(var(--s12) + env(safe-area-inset-bottom));
   -webkit-tap-highlight-color:transparent;
 }
+body.locked{overflow:hidden}
 .app{width:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:var(--s6)}
 
 /* ---------- Header ---------- */
@@ -92,7 +93,8 @@ select.list-select{
 
 /* ---------- Buttons ---------- */
 button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;
-  transition:transform .12s var(--ease),background .18s var(--ease),opacity .18s}
+  transition:transform .12s var(--ease),background .18s var(--ease),
+             border-color .18s var(--ease),opacity .18s}
 button:active{transform:scale(.96)}
 :focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:var(--r-sm)}
 
@@ -210,6 +212,53 @@ ul{list-style:none;display:flex;flex-direction:column;gap:var(--s2)}
 
 footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
 
+/* ---------- Template sheet ---------- */
+.backdrop{
+  display:none;position:fixed;inset:0;z-index:20;
+  background:rgb(9 7 28 / .74);
+  justify-content:center;align-items:flex-end;
+}
+.backdrop.open{display:flex}
+@media (min-width:600px){ .backdrop.open{align-items:center} }
+
+.sheet{
+  width:min(560px,100%);max-height:88dvh;overflow-y:auto;
+  background:linear-gradient(180deg,var(--surface),#241f66);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg) var(--r-lg) 0 0;
+  padding:var(--s4) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom));
+  box-shadow:var(--shadow-2);
+  animation:rise .24s var(--ease);
+}
+@media (min-width:600px){ .sheet{border-radius:var(--r-lg);max-height:82dvh} }
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);
+  margin-bottom:var(--s2)}
+.sheet-head h2{font-size:1.15rem;font-weight:700}
+.sheet-sub{color:var(--muted);font-size:.85rem;margin-bottom:var(--s4)}
+
+.blank-btn{
+  width:100%;text-align:left;padding:14px 16px;margin-bottom:var(--s6);
+  border-radius:var(--r-md);border:1px dashed var(--border);background:var(--bg);
+  color:var(--text);font-weight:500;font-size:.95rem;
+}
+.blank-btn:hover{border-color:var(--primary);border-style:solid}
+.blank-btn small{display:block;color:var(--muted);font-size:.75rem;font-weight:400}
+
+.pack{margin-bottom:var(--s6)}
+.pack h3{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--primary);margin-bottom:var(--s3)}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.chip{
+  display:flex;align-items:baseline;gap:6px;
+  padding:10px 14px;border-radius:var(--r-pill);
+  background:var(--bg);border:1px solid var(--border);
+  color:var(--text);font-size:.9rem;font-weight:500;
+}
+.chip small{color:var(--muted);font-size:.72rem;font-variant-numeric:tabular-nums}
+.chip:hover{border-color:var(--primary);background:var(--surface-2)}
+
 /* ---------- Confetti ---------- */
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:9}
 
@@ -283,6 +332,24 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
   <footer>Everything is saved on this device only.</footer>
 </div>
 
+<!-- New-list sheet: blank list, or start from a template -->
+<div class="backdrop" id="backdrop" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet" id="sheet">
+    <div class="sheet-head">
+      <h2 id="sheetTitle">New list</h2>
+      <button class="btn-icon" id="closeSheet" aria-label="Close">&times;</button>
+    </div>
+    <p class="sheet-sub">Start from scratch, or grab a ready-made wheel.</p>
+
+    <button class="blank-btn" id="blankList">
+      Blank list
+      <small>Name it yourself and add your own options</small>
+    </button>
+
+    <div id="packs"></div>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    Spin It — Decision Picker
@@ -295,6 +362,36 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
   var PALETTE = ['#f472b6','#fbbf24','#34d399','#60a5fa','#a78bfa','#fb923c',
                  '#22d3ee','#f87171','#4ade80','#e879f9','#facc15','#38bdf8'];
   var uid = function () { return Math.random().toString(36).slice(2, 9); };
+
+  /* ---------- Ready-made wheels ---------- */
+  var TEMPLATES = [
+    { pack: 'Food & drink', items: [
+      { name: 'Takeout tonight',  options: ['Pizza','Chinese','Thai','Indian','Mexican','Sushi','Burgers','Greek'] },
+      { name: 'What to cook',     options: ['Pasta','Stir fry','Tacos','Soup','Breakfast for dinner','Sheet-pan chicken','Curry','Grilled cheese'] },
+      { name: 'Coffee order',     options: ['Latte','Cappuccino','Cold brew','Flat white','Espresso','Mocha','Tea, actually'] },
+      { name: 'Dessert',          options: ['Ice cream','Cookies','Brownie','Cheesecake','Fruit','Be strong, skip it'] },
+      { name: 'Where to eat out', options: ['Somewhere new','The usual','Cheap eats','Fancy night','Whatever is closest'] }
+    ]},
+    { pack: 'Entertainment', items: [
+      { name: 'Movie genre',      options: ['Comedy','Thriller','Sci-fi','Documentary','Horror','Action','Animation','Something old'] },
+      { name: 'What to watch',    options: ['Start a new series','Comfort rewatch','A movie','Documentary','Something short','Turn the TV off'] },
+      { name: 'Board game',       options: ['Catan','Ticket to Ride','Codenames','Monopoly','Cards','Chess','Whatever is on top'] },
+      { name: 'Weekend activity', options: ['Go for a hike','Museum','Stay in','Try a new restaurant','Road trip','Park day','See friends','Do nothing'] },
+      { name: 'Date night',       options: ['Dinner out','Movie at home','Walk and coffee','Cook together','Game night','Try something new'] }
+    ]},
+    { pack: 'Health & habits', items: [
+      { name: 'Workout today',    options: ['Run','Upper body','Legs','Yoga','HIIT','Swim','Long walk','Rest day'] },
+      { name: '10-minute break',  options: ['Walk outside','Stretch','Water and a snack','Breathe','Call someone','Tidy one thing','Just sit'] },
+      { name: 'Which chore next', options: ['Dishes','Laundry','Vacuum','Take out trash','Bathroom','Inbox','Clear the desk','One tiny thing'] },
+      { name: 'Wind down',        options: ['Read','Stretch','Shower','Journal','Music','Lights out now'] }
+    ]},
+    { pack: 'Decide for me', items: [
+      { name: 'Yes or no',      options: ['Yes','No','Ask again later'] },
+      { name: 'Heads or tails', options: ['Heads','Tails'] },
+      { name: 'Who goes first', options: ['Player 1','Player 2','Player 3','Player 4'] },
+      { name: 'Truth or dare',  options: ['Truth','Dare'] }
+    ]}
+  ];
 
   function defaultState() {
     return {
@@ -591,6 +688,84 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
     })();
   }
 
+  /* ---------- New-list sheet ---------- */
+  var backdrop = document.getElementById('backdrop');
+
+  function renderPacks() {
+    document.getElementById('packs').innerHTML = TEMPLATES.map(function (p, pi) {
+      var chips = p.items.map(function (t, ti) {
+        return '<button class="chip" data-pack="' + pi + '" data-tpl="' + ti + '">'
+             + esc(t.name) + ' <small>' + t.options.length + '</small></button>';
+      }).join('');
+      return '<div class="pack"><h3>' + esc(p.pack) + '</h3>'
+           + '<div class="chips">' + chips + '</div></div>';
+    }).join('');
+  }
+
+  function openSheet() {
+    renderPacks();
+    backdrop.classList.add('open');
+    document.body.classList.add('locked');
+  }
+  function closeSheet() {
+    backdrop.classList.remove('open');
+    document.body.classList.remove('locked');
+  }
+
+  // "Dinner" twice would be confusing — give the copy a number.
+  function uniqueName(base) {
+    var name = base, n = 2;
+    var taken = function (candidate) {
+      return state.lists.some(function (l) { return l.name === candidate; });
+    };
+    while (taken(name)) name = base + ' ' + (n++);
+    return name;
+  }
+
+  function addList(name, labels) {
+    var list = {
+      id: uid(),
+      name: uniqueName(name),
+      options: labels.map(function (label) {
+        return { id: uid(), label: label, weight: 1 };
+      }),
+      lastPick: null
+    };
+    state.lists.push(list);
+    state.activeListId = list.id;
+    rotation = 0;
+    save();
+
+    var res = document.getElementById('result');
+    res.className = 'result';
+    res.textContent = labels.length ? 'Ready when you are.' : 'Add a few options, then spin.';
+    renderAll();
+    return list;
+  }
+
+  document.getElementById('newList').addEventListener('click', openSheet);
+  document.getElementById('closeSheet').addEventListener('click', closeSheet);
+
+  backdrop.addEventListener('click', function (e) {
+    if (e.target === backdrop) closeSheet();          // tap outside to dismiss
+  });
+
+  document.getElementById('blankList').addEventListener('click', function () {
+    closeSheet();
+    var name = prompt('Name this list', 'New list');
+    if (!name || !name.trim()) return;
+    addList(name.trim(), []);
+    document.getElementById('optInput').focus();
+  });
+
+  document.getElementById('packs').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    var tpl = TEMPLATES[+chip.dataset.pack].items[+chip.dataset.tpl];
+    closeSheet();
+    addList(tpl.name, tpl.options.slice());
+  });
+
   /* ---------- Events ---------- */
   document.getElementById('spin').addEventListener('click', spin);
 
@@ -645,17 +820,6 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
     renderAll();
   });
 
-  document.getElementById('newList').addEventListener('click', function () {
-    var name = prompt('Name this list', 'New list');
-    if (!name || !name.trim()) return;
-    var list = { id: uid(), name: name.trim(), options: [], lastPick: null };
-    state.lists.push(list);
-    state.activeListId = list.id;
-    rotation = 0;
-    save(); renderAll();
-    document.getElementById('optInput').focus();
-  });
-
   document.getElementById('listMenu').addEventListener('click', function () {
     var list = activeList();
     var name = prompt('Rename this list — or clear the text and press OK to delete it.', list.name);
@@ -680,8 +844,13 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
   });
 
   addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && backdrop.classList.contains('open')) {
+      closeSheet();
+      return;
+    }
     var tag = document.activeElement ? document.activeElement.tagName : '';
-    if (e.code === 'Space' && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(tag)) {
+    if (e.code === 'Space' && !backdrop.classList.contains('open')
+        && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(tag)) {
       e.preventDefault();
       spin();
     }
@@ -690,7 +859,10 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
   renderAll();
 
   // Pure logic exposed for testing.
-  window.__spinit = { pickWinner: pickWinner, segments: segments };
+  window.__spinit = {
+    pickWinner: pickWinner, segments: segments,
+    TEMPLATES: TEMPLATES, uniqueName: uniqueName, addList: addList
+  };
 
   if ('serviceWorker' in navigator) {
     addEventListener('load', function () {
