@@ -412,8 +412,17 @@ footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
       var txt = s.option.label.length > maxChars
         ? s.option.label.slice(0, maxChars - 1) + '…'
         : s.option.label;
-      labels += '<text class="seg-label" transform="rotate(' + s.mid.toFixed(2) + ' ' + CX + ' ' + CY + ')"'
-             + ' x="' + CX + '" y="' + (CY - R * 0.62).toFixed(1) + '" text-anchor="middle"'
+
+      // Sit the label on its slice, then rotate it about its own centre.
+      // Slices past the halfway mark get an extra 180° so the text never
+      // ends up upside-down on the bottom of the wheel.
+      var p = pt(s.mid, R * 0.62);
+      var a = (s.mid > 90 && s.mid < 270) ? s.mid + 180 : s.mid;
+
+      labels += '<text class="seg-label"'
+             + ' transform="rotate(' + a.toFixed(2) + ' ' + p[0].toFixed(2) + ' ' + p[1].toFixed(2) + ')"'
+             + ' x="' + p[0].toFixed(2) + '" y="' + p[1].toFixed(2) + '"'
+             + ' text-anchor="middle" dominant-baseline="central"'
              + ' fill="#241c05">' + esc(txt) + '</text>';
     });
 
