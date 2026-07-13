@@ -5,7 +5,7 @@
  * GitHub mobile app show up on your phone immediately (no "why is it still the
  * old version?" cache purgatory). The cache is only a fallback for offline.
  */
-const CACHE = 'spinit-v4';
+const CACHE = 'spinit-v5';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './favicon.png'];
 
 self.addEventListener('install', event => {

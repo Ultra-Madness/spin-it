@@ -9,11 +9,12 @@ No accounts, no backend, no tracking — everything lives in your browser's loca
 
 - **Spinner wheel** — slice sizes reflect the real odds, and the wheel always lands where it says it will.
 - **Saved lists** — keep separate wheels for dinner, movies, workouts, chores. Switch with the dropdown.
-- **18 ready-made wheels** — tap `+` and pick one. Four packs:
+- **28 ready-made wheels** — tap `+` and pick one. Five packs:
   - *Food & drink* — Takeout tonight, What to cook, Coffee order, Dessert, Where to eat out
   - *Entertainment* — Movie genre, What to watch, Board game, Weekend activity, Date night
   - *Health & habits* — Workout today, 10-minute break, Which chore next, Wind down
   - *Decide for me* — Yes or no, Heads or tails, Who goes first, Truth or dare
+  - *Improv* — Relationship, Location, Occupation, Object, Emotion, Activity, One word, First line, Genre, Character quirk
 
   Each one lands as a normal list you can rename, add to, or re-weight. Adding the same template twice gives you "Takeout tonight 2" rather than two identical entries.
 - **Weights** — bump an option's weight from 1 to 10 with `−` / `+`. Its slice grows and the `%` next to it shows the true chance. "Even odds" resets everything to 1.
