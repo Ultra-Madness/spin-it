@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spin It — Decision Picker</title>
+<meta name="description" content="Can't decide? Add your options, spin the wheel, get an answer.">
+<meta name="theme-color" content="#1e1b4b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spin It">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Design tokens — change the look from one place.
+   Register: energetic, tactile, "arcade at night".
+   ============================================================ */
+:root{
+  --bg:#1e1b4b;
+  --bg-deep:#141134;
+  --surface:#312e81;
+  --surface-2:#3b37a0;
+  --text:#eef2ff;
+  --muted:#a5b4fc;
+  --primary:#fbbf24;
+  --primary-ink:#3b2a04;
+  --accent:#f472b6;
+  --border:#4338ca;
+  --danger:#fb7185;
+
+  /* spacing scale — 4 / 8 / 12 / 16 / 24 / 32 / 48 */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+
+  --r-sm:10px; --r-md:16px; --r-lg:24px; --r-pill:999px;
+  --shadow-1:0 1px 3px rgb(0 0 0 / .3);
+  --shadow-2:0 12px 32px rgb(0 0 0 / .35);
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:'Fredoka',ui-rounded,'SF Pro Rounded',system-ui,-apple-system,'Segoe UI',sans-serif;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #4338ca55, transparent 60%),
+    radial-gradient(800px 500px at 90% 110%, #f472b62e, transparent 60%),
+    var(--bg-deep);
+  color:var(--text);
+  min-height:100dvh;
+  line-height:1.5;
+  padding:
+    calc(var(--s4) + env(safe-area-inset-top)) var(--s4)
+    calc(var(--s12) + env(safe-area-inset-bottom));
+  -webkit-tap-highlight-color:transparent;
+}
+.app{width:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:var(--s6)}
+
+/* ---------- Header ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:var(--s3)}
+.brand{display:flex;align-items:center;gap:var(--s2);font-weight:700;font-size:1.35rem;letter-spacing:-.01em}
+.brand .dot{width:14px;height:14px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px #fbbf2433}
+.brand em{font-style:normal;color:var(--primary)}
+
+/* ---------- Cards ---------- */
+.card{
+  background:linear-gradient(180deg,var(--surface),#2b2875);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:var(--s4);
+  box-shadow:var(--shadow-1);
+}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);margin-bottom:var(--s3)}
+.card-head h2{font-size:.8rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- List switcher ---------- */
+.lists{display:flex;gap:var(--s2);align-items:center}
+select.list-select{
+  appearance:none;-webkit-appearance:none;
+  background:var(--surface);color:var(--text);
+  border:1px solid var(--border);border-radius:var(--r-pill);
+  padding:10px 34px 10px 14px;font:inherit;font-size:.95rem;font-weight:500;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a5b4fc'><path d='M6 9L1 3h10z'/></svg>");
+  background-repeat:no-repeat;background-position:right 12px center;
+  max-width:170px;text-overflow:ellipsis;cursor:pointer;
+}
+
+/* ---------- Buttons ---------- */
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;
+  transition:transform .12s var(--ease),background .18s var(--ease),opacity .18s}
+button:active{transform:scale(.96)}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:var(--r-sm)}
+
+.btn-icon{
+  width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;
+  border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-size:1.2rem;font-weight:600;
+}
+.btn-icon:hover{background:var(--surface-2)}
+.btn-ghost{
+  padding:8px 14px;border-radius:var(--r-pill);border:1px solid var(--border);
+  color:var(--muted);font-size:.85rem;font-weight:500;
+}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text)}
+
+.spin-btn{
+  width:100%;padding:20px;border-radius:var(--r-lg);
+  background:linear-gradient(180deg,#fcd34d,var(--primary));
+  color:var(--primary-ink);font-size:1.4rem;font-weight:700;letter-spacing:.02em;
+  box-shadow:0 6px 0 #b4821a, var(--shadow-2);
+  position:relative;top:0;
+}
+.spin-btn:active:not(:disabled){top:4px;box-shadow:0 2px 0 #b4821a,var(--shadow-1);transform:none}
+.spin-btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:0 6px 0 #b4821a}
+
+/* ---------- Wheel ---------- */
+.wheel-wrap{position:relative;display:grid;place-items:center;padding:var(--s2) 0}
+.wheel-stage{position:relative;width:min(88vw,340px);aspect-ratio:1}
+.pointer{
+  position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:3;
+  filter:drop-shadow(0 3px 6px rgb(0 0 0 / .5));
+}
+#wheel{width:100%;height:100%;display:block;border-radius:50%;
+  box-shadow:0 0 0 8px #4338ca66, 0 0 0 14px #1e1b4b, var(--shadow-2);
+  background:var(--bg);
+}
+#rotor{transform-origin:150px 150px;transition:transform 4.4s cubic-bezier(.13,.86,.16,1)}
+.hub{pointer-events:none}
+.seg-label{font-size:13px;font-weight:600;paint-order:stroke;
+  stroke:rgb(255 255 255 / .45);stroke-width:2.5px;stroke-linejoin:round}
+.wheel-empty{display:grid;place-items:center;text-align:center;color:var(--muted);
+  width:100%;aspect-ratio:1;border:2px dashed var(--border);border-radius:50%;
+  padding:var(--s8);font-size:.95rem}
+
+/* ---------- Result ---------- */
+.result{
+  min-height:76px;display:grid;place-items:center;text-align:center;
+  border-radius:var(--r-md);padding:var(--s3) var(--s4);
+  border:1px dashed var(--border);color:var(--muted);font-size:.95rem;
+}
+.result.win{
+  border:1px solid var(--primary);color:var(--text);
+  background:linear-gradient(180deg,#fbbf2422,#f472b616);
+  animation:pop .45s var(--ease);
+}
+.result .kicker{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--primary);font-weight:600}
+.result .pick{font-size:1.5rem;font-weight:700;line-height:1.25;word-break:break-word}
+@keyframes pop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
+
+/* ---------- Option rows ---------- */
+.add-row{display:flex;gap:var(--s2);margin-bottom:var(--s3)}
+input[type=text]{
+  flex:1;min-width:0;background:var(--bg);color:var(--text);
+  border:1px solid var(--border);border-radius:var(--r-pill);
+  padding:12px 16px;font:inherit;font-size:1rem;
+}
+input[type=text]::placeholder{color:#8b93d6}
+input[type=text]:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px #fbbf2433}
+
+ul{list-style:none;display:flex;flex-direction:column;gap:var(--s2)}
+.opt{
+  display:flex;align-items:center;gap:var(--s2);
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:8px 8px 8px 12px;animation:slide .22s var(--ease);
+}
+@keyframes slide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.opt .swatch{width:10px;height:26px;border-radius:var(--r-pill);flex:0 0 10px}
+.opt .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.opt .odds{font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto}
+
+.weight{display:flex;align-items:center;background:var(--surface);
+  border-radius:var(--r-pill);border:1px solid var(--border)}
+.weight button{width:32px;height:32px;display:grid;place-items:center;color:var(--muted);
+  font-size:1rem;font-weight:700;border-radius:var(--r-pill)}
+.weight button:hover{color:var(--text)}
+.weight button:disabled{opacity:.3;cursor:not-allowed}
+.weight .val{min-width:22px;text-align:center;font-size:.9rem;font-weight:600;font-variant-numeric:tabular-nums}
+.del{width:32px;height:32px;display:grid;place-items:center;border-radius:var(--r-pill);
+  color:var(--muted);font-size:1.1rem}
+.del:hover{color:var(--danger);background:#fb718519}
+
+.empty{text-align:center;color:var(--muted);padding:var(--s6) var(--s4);font-size:.95rem}
+.empty strong{display:block;color:var(--text);font-size:1.05rem;margin-bottom:var(--s1)}
+
+/* ---------- Toggle ---------- */
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);
+  padding-top:var(--s3);margin-top:var(--s3);border-top:1px solid var(--border)}
+.toggle .lbl{font-size:.9rem;color:var(--text)}
+.toggle .lbl small{display:block;color:var(--muted);font-size:.75rem;font-weight:400}
+.switch{position:relative;width:50px;height:30px;flex:0 0 50px;border-radius:var(--r-pill);
+  background:var(--bg);border:1px solid var(--border);transition:background .2s var(--ease)}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+  background:var(--muted);transition:transform .2s var(--ease),background .2s var(--ease)}
+.switch[aria-checked=true]{background:var(--primary);border-color:var(--primary)}
+.switch[aria-checked=true]::after{transform:translateX(20px);background:#fff}
+
+/* ---------- History ---------- */
+.hist{display:flex;flex-direction:column;gap:var(--s1);max-height:230px;overflow-y:auto}
+.hist li{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s3);
+  padding:9px 12px;border-radius:var(--r-sm);background:var(--bg);font-size:.9rem}
+.hist .h-pick{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist .h-meta{flex:0 0 auto;font-size:.72rem;color:var(--muted);text-align:right}
+.hist .h-meta b{display:block;font-weight:500;color:#8b93d6}
+
+footer{text-align:center;color:#7b83c9;font-size:.75rem;padding-top:var(--s2)}
+
+/* ---------- Confetti ---------- */
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:9}
+
+@media (prefers-reduced-motion:reduce){
+  *,#rotor{transition-duration:.01ms !important;animation-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<div class="app">
+
+  <header>
+    <div class="brand"><span class="dot"></span>Spin<em>It</em></div>
+    <div class="lists">
+      <select id="listSelect" class="list-select" aria-label="Choose a list"></select>
+      <button class="btn-icon" id="newList" title="New list" aria-label="New list">+</button>
+      <button class="btn-icon" id="listMenu" title="Rename or delete this list" aria-label="List options">&#8943;</button>
+    </div>
+  </header>
+
+  <section class="wheel-wrap">
+    <div class="wheel-stage">
+      <svg class="pointer" width="34" height="30" viewBox="0 0 34 30" aria-hidden="true">
+        <path d="M17 30 4 4a3 3 0 0 1 3.2-4.3 44 44 0 0 0 19.6 0A3 3 0 0 1 30 4Z" fill="#fbbf24"/>
+        <path d="M17 30 10 16a30 30 0 0 0 14 0Z" fill="#f59e0b"/>
+      </svg>
+      <div id="wheelHost"></div>
+    </div>
+  </section>
+
+  <div class="result" id="result" role="status" aria-live="polite">
+    Add a few options, then spin.
+  </div>
+
+  <button class="spin-btn" id="spin">SPIN</button>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Options <span id="optCount"></span></h2>
+      <button class="btn-ghost" id="evenOdds" title="Reset every weight to 1">Even odds</button>
+    </div>
+
+    <form class="add-row" id="addForm">
+      <input type="text" id="optInput" placeholder="Add an option&hellip;" maxlength="40"
+             autocomplete="off" enterkeyhint="done" aria-label="New option">
+      <button class="btn-icon" type="submit" aria-label="Add option"
+              style="background:var(--primary);color:var(--primary-ink);border-color:var(--primary)">+</button>
+    </form>
+
+    <ul id="optList"></ul>
+
+    <div class="toggle">
+      <div class="lbl">Never repeat the last pick
+        <small>Skips the previous winner so you get something new</small>
+      </div>
+      <button class="switch" id="noRepeat" role="switch" aria-checked="false"
+              aria-label="Never repeat the last pick"></button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>History</h2>
+      <button class="btn-ghost" id="clearHist">Clear</button>
+    </div>
+    <ul class="hist" id="histList"></ul>
+  </section>
+
+  <footer>Everything is saved on this device only.</footer>
+</div>
+
+<script>
+/* ============================================================
+   Spin It — Decision Picker
+   Vanilla JS, no build step. All state in localStorage under one key.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var KEY = 'spinit.v1';
+  var PALETTE = ['#f472b6','#fbbf24','#34d399','#60a5fa','#a78bfa','#fb923c',
+                 '#22d3ee','#f87171','#4ade80','#e879f9','#facc15','#38bdf8'];
+  var uid = function () { return Math.random().toString(36).slice(2, 9); };
+
+  function defaultState() {
+    return {
+      activeListId: 'seed',
+      noRepeat: false,
+      lists: [{
+        id: 'seed',
+        name: "What's for dinner?",
+        options: [
+          { id: uid(), label: 'Tacos',     weight: 1 },
+          { id: uid(), label: 'Pizza',     weight: 1 },
+          { id: uid(), label: 'Thai',      weight: 1 },
+          { id: uid(), label: 'Burgers',   weight: 1 },
+          { id: uid(), label: 'Leftovers', weight: 1 }
+        ],
+        lastPick: null
+      }],
+      history: []
+    };
+  }
+
+  var state = load();
+  var spinning = false;
+  var rotation = 0;
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return defaultState();
+      var s = JSON.parse(raw);
+      if (!s || !Array.isArray(s.lists) || !s.lists.length) return defaultState();
+      if (!Array.isArray(s.history)) s.history = [];
+      return s;
+    } catch (e) { return defaultState(); }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function activeList() {
+    var found = state.lists.filter(function (l) { return l.id === state.activeListId; })[0];
+    return found || state.lists[0];
+  }
+
+  /* ---------- The actual decision engine ---------- */
+  function pickWinner(options, excludeId) {
+    var pool = options;
+    if (excludeId && options.length > 1) {
+      var filtered = options.filter(function (o) { return o.id !== excludeId; });
+      if (filtered.length) pool = filtered;
+    }
+    var total = pool.reduce(function (sum, o) { return sum + o.weight; }, 0);
+    var r = Math.random() * total;
+    for (var i = 0; i < pool.length; i++) {
+      r -= pool[i].weight;
+      if (r < 0) return pool[i];
+    }
+    return pool[pool.length - 1];
+  }
+
+  /* ---------- Wheel geometry ---------- */
+  var CX = 150, CY = 150, R = 142;
+  function pt(deg, r) {
+    var a = (deg - 90) * Math.PI / 180;       // 0deg = straight up, clockwise
+    return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  function segments(options) {
+    var total = options.reduce(function (s, o) { return s + o.weight; }, 0) || 1;
+    var cursor = 0;
+    return options.map(function (o, i) {
+      var sweep = (o.weight / total) * 360;
+      var seg = {
+        option: o, start: cursor, end: cursor + sweep,
+        mid: cursor + sweep / 2, sweep: sweep,
+        color: PALETTE[i % PALETTE.length]
+      };
+      cursor += sweep;
+      return seg;
+    });
+  }
+
+  function renderWheel() {
+    var host = document.getElementById('wheelHost');
+    var opts = activeList().options;
+
+    if (!opts.length) {
+      host.innerHTML = '<div class="wheel-empty">Nothing to spin yet.<br>Add your first option below.</div>';
+      return;
+    }
+
+    var segs = segments(opts);
+    var paths = '';
+
+    if (segs.length === 1) {
+      paths = '<circle cx="' + CX + '" cy="' + CY + '" r="' + R + '" fill="' + segs[0].color + '"/>';
+    } else {
+      segs.forEach(function (s) {
+        var a = pt(s.start, R), b = pt(s.end, R);
+        var large = s.sweep > 180 ? 1 : 0;
+        paths += '<path d="M' + CX + ',' + CY + ' L' + a[0].toFixed(2) + ',' + a[1].toFixed(2)
+              + ' A' + R + ',' + R + ' 0 ' + large + ',1 ' + b[0].toFixed(2) + ',' + b[1].toFixed(2)
+              + ' Z" fill="' + s.color + '" stroke="#1e1b4b" stroke-width="2"/>';
+      });
+    }
+
+    var labels = '';
+    segs.forEach(function (s) {
+      if (s.sweep < 11) return;                        // too thin to read
+      var maxChars = Math.max(4, Math.round(s.sweep / 4.5));
+      var txt = s.option.label.length > maxChars
+        ? s.option.label.slice(0, maxChars - 1) + '…'
+        : s.option.label;
+      labels += '<text class="seg-label" transform="rotate(' + s.mid.toFixed(2) + ' ' + CX + ' ' + CY + ')"'
+             + ' x="' + CX + '" y="' + (CY - R * 0.62).toFixed(1) + '" text-anchor="middle"'
+             + ' fill="#241c05">' + esc(txt) + '</text>';
+    });
+
+    host.innerHTML =
+      '<svg id="wheel" viewBox="0 0 300 300" role="img" aria-label="Wheel of options">'
+      + '<g id="rotor" style="transform:rotate(' + rotation + 'deg)">' + paths + labels + '</g>'
+      + '<g class="hub">'
+      +   '<circle cx="' + CX + '" cy="' + CY + '" r="26" fill="#1e1b4b" stroke="#fbbf24" stroke-width="3"/>'
+      +   '<circle cx="' + CX + '" cy="' + CY + '" r="8" fill="#fbbf24"/>'
+      + '</g></svg>';
+  }
+
+  function renderOptions() {
+    var list = activeList();
+    var ul = document.getElementById('optList');
+    var opts = list.options;
+    var total = opts.reduce(function (s, o) { return s + o.weight; }, 0) || 1;
+
+    document.getElementById('optCount').textContent = opts.length ? '· ' + opts.length : '';
+
+    if (!opts.length) {
+      ul.innerHTML = '<li class="empty"><strong>No options yet</strong>'
+                   + 'Type something above — "Tacos", "Go for a run", anything.</li>';
+      return;
+    }
+
+    ul.innerHTML = opts.map(function (o, i) {
+      var pct = Math.round((o.weight / total) * 100);
+      return '<li class="opt" data-id="' + o.id + '">'
+        + '<span class="swatch" style="background:' + PALETTE[i % PALETTE.length] + '"></span>'
+        + '<span class="name">' + esc(o.label) + '</span>'
+        + '<span class="odds">' + pct + '%</span>'
+        + '<span class="weight">'
+        +   '<button data-act="dec"' + (o.weight <= 1 ? ' disabled' : '')
+        +     ' aria-label="Less likely: ' + esc(o.label) + '">−</button>'
+        +   '<span class="val" title="Weight">' + o.weight + '</span>'
+        +   '<button data-act="inc"' + (o.weight >= 10 ? ' disabled' : '')
+        +     ' aria-label="More likely: ' + esc(o.label) + '">+</button>'
+        + '</span>'
+        + '<button class="del" data-act="del" aria-label="Remove ' + esc(o.label) + '">×</button>'
+        + '</li>';
+    }).join('');
+  }
+
+  function renderHistory() {
+    var ul = document.getElementById('histList');
+    if (!state.history.length) {
+      ul.innerHTML = '<li class="empty"><strong>No spins yet</strong>'
+                   + 'Your past decisions will show up here.</li>';
+      return;
+    }
+    ul.innerHTML = state.history.slice(0, 40).map(function (h) {
+      var when = new Date(h.ts).toLocaleString(undefined,
+        { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      return '<li><span class="h-pick">' + esc(h.pick) + '</span>'
+           + '<span class="h-meta">' + esc(when) + '<b>' + esc(h.list) + '</b></span></li>';
+    }).join('');
+  }
+
+  function renderLists() {
+    document.getElementById('listSelect').innerHTML = state.lists.map(function (l) {
+      return '<option value="' + l.id + '"' + (l.id === activeList().id ? ' selected' : '') + '>'
+           + esc(l.name) + '</option>';
+    }).join('');
+  }
+
+  function renderAll() {
+    renderLists();
+    renderWheel();
+    renderOptions();
+    renderHistory();
+    document.getElementById('noRepeat').setAttribute('aria-checked', String(!!state.noRepeat));
+    document.getElementById('spin').disabled = activeList().options.length < 2 || spinning;
+  }
+
+  /* ---------- Spin ---------- */
+  function spin() {
+    var list = activeList();
+    if (spinning || list.options.length < 2) return;
+
+    var winner = pickWinner(list.options, state.noRepeat ? list.lastPick : null);
+    var seg = segments(list.options).filter(function (s) { return s.option.id === winner.id; })[0];
+
+    // Land the winner's slice under the pointer (top = 0deg), plus a random
+    // offset inside the slice so it never stops in exactly the same spot.
+    var jitter  = (Math.random() - 0.5) * seg.sweep * 0.72;
+    var target  = ((-(seg.mid + jitter)) % 360 + 360) % 360;
+    var current = ((rotation % 360) + 360) % 360;
+    var delta = target - current;
+    if (delta < 0) delta += 360;
+    rotation += delta + 360 * (4 + Math.floor(Math.random() * 3));
+
+    spinning = true;
+    var spinBtn = document.getElementById('spin');
+    var res = document.getElementById('result');
+    spinBtn.disabled = true;
+    res.className = 'result';
+    res.textContent = 'Spinning…';
+
+    var rotor = document.getElementById('rotor');
+    rotor.style.transform = 'rotate(' + rotation + 'deg)';
+
+    var settled = false;
+    function done() {
+      if (settled) return;
+      settled = true;
+      rotor.removeEventListener('transitionend', done);
+      spinning = false;
+
+      list.lastPick = winner.id;
+      state.history.unshift({ ts: Date.now(), pick: winner.label, list: list.name });
+      state.history = state.history.slice(0, 100);
+      save();
+
+      res.className = 'result win';
+      res.innerHTML = '<div><div class="kicker">The wheel says</div>'
+                    + '<div class="pick">' + esc(winner.label) + '</div></div>';
+      if (navigator.vibrate) navigator.vibrate([12, 40, 22]);
+      confetti();
+      renderHistory();
+      spinBtn.disabled = false;
+    }
+    rotor.addEventListener('transitionend', done);
+    setTimeout(done, 5200);                            // safety net
+  }
+
+  /* ---------- Confetti ---------- */
+  function confetti() {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var cv = document.getElementById('confetti');
+    var ctx = cv.getContext('2d');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = innerWidth * dpr;
+    cv.height = innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    var bits = [];
+    for (var i = 0; i < 90; i++) {
+      bits.push({
+        x: innerWidth / 2 + (Math.random() - .5) * 120,
+        y: innerHeight * 0.42,
+        vx: (Math.random() - .5) * 11,
+        vy: -Math.random() * 13 - 4,
+        r: Math.random() * 6 + 3,
+        a: Math.random() * Math.PI,
+        va: (Math.random() - .5) * .3,
+        c: PALETTE[Math.floor(Math.random() * PALETTE.length)]
+      });
+    }
+
+    var frames = 0;
+    (function tick() {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      bits.forEach(function (b) {
+        b.vy += 0.38; b.x += b.vx; b.y += b.vy; b.a += b.va;
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b.a);
+        ctx.fillStyle = b.c;
+        ctx.globalAlpha = Math.max(0, 1 - frames / 110);
+        ctx.fillRect(-b.r / 2, -b.r / 2, b.r, b.r * 1.6);
+        ctx.restore();
+      });
+      if (++frames < 115) requestAnimationFrame(tick);
+      else ctx.clearRect(0, 0, innerWidth, innerHeight);
+    })();
+  }
+
+  /* ---------- Events ---------- */
+  document.getElementById('spin').addEventListener('click', spin);
+
+  document.getElementById('addForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var input = document.getElementById('optInput');
+    var label = input.value.trim();
+    if (!label) return;
+    activeList().options.push({ id: uid(), label: label, weight: 1 });
+    input.value = '';
+    save(); renderAll();
+    input.focus();
+  });
+
+  document.getElementById('optList').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-act]');
+    if (!btn || spinning) return;
+    var row = btn.closest('.opt');
+    var list = activeList();
+    var opt = list.options.filter(function (o) { return o.id === row.dataset.id; })[0];
+    if (!opt) return;
+
+    var act = btn.dataset.act;
+    if (act === 'del') {
+      list.options = list.options.filter(function (o) { return o.id !== opt.id; });
+      if (list.lastPick === opt.id) list.lastPick = null;
+    } else if (act === 'inc') {
+      opt.weight = Math.min(10, opt.weight + 1);
+    } else if (act === 'dec') {
+      opt.weight = Math.max(1, opt.weight - 1);
+    }
+    save(); renderAll();
+  });
+
+  document.getElementById('evenOdds').addEventListener('click', function () {
+    activeList().options.forEach(function (o) { o.weight = 1; });
+    save(); renderAll();
+  });
+
+  document.getElementById('noRepeat').addEventListener('click', function () {
+    state.noRepeat = !state.noRepeat;
+    save(); renderAll();
+  });
+
+  document.getElementById('listSelect').addEventListener('change', function (e) {
+    state.activeListId = e.target.value;
+    rotation = 0;
+    save();
+    var res = document.getElementById('result');
+    res.className = 'result';
+    res.textContent = 'Ready when you are.';
+    renderAll();
+  });
+
+  document.getElementById('newList').addEventListener('click', function () {
+    var name = prompt('Name this list', 'New list');
+    if (!name || !name.trim()) return;
+    var list = { id: uid(), name: name.trim(), options: [], lastPick: null };
+    state.lists.push(list);
+    state.activeListId = list.id;
+    rotation = 0;
+    save(); renderAll();
+    document.getElementById('optInput').focus();
+  });
+
+  document.getElementById('listMenu').addEventListener('click', function () {
+    var list = activeList();
+    var name = prompt('Rename this list — or clear the text and press OK to delete it.', list.name);
+    if (name === null) return;
+    if (!name.trim()) {
+      if (state.lists.length === 1) { alert('You need at least one list.'); return; }
+      if (!confirm('Delete "' + list.name + '" and its options?')) return;
+      state.lists = state.lists.filter(function (l) { return l.id !== list.id; });
+      state.activeListId = state.lists[0].id;
+    } else {
+      list.name = name.trim();
+    }
+    rotation = 0;
+    save(); renderAll();
+  });
+
+  document.getElementById('clearHist').addEventListener('click', function () {
+    if (!state.history.length) return;
+    if (!confirm('Clear your spin history?')) return;
+    state.history = [];
+    save(); renderHistory();
+  });
+
+  addEventListener('keydown', function (e) {
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    if (e.code === 'Space' && !/INPUT|TEXTAREA|SELECT|BUTTON/.test(tag)) {
+      e.preventDefault();
+      spin();
+    }
+  });
+
+  renderAll();
+
+  // Pure logic exposed for testing.
+  window.__spinit = { pickWinner: pickWinner, segments: segments };
+
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
